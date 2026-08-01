@@ -73,13 +73,20 @@ const toggle = document.getElementById("menuToggle");
     if (ev === "drop") addPhotos(e.dataTransfer.files);
   }));
 
+
   // ===== WIRING: patient portal ===================================
   // Mass General Brigham's Epic MyChart instance. Confirm this is the
   // instance the practice's patients actually use before launch.
   const PORTAL_URL = "https://patientgateway.massgeneralbrigham.org/";
   const PORTAL_NAME = "Patient Gateway";
+  // Confirm the exact self-signup path with the practice; MGB may route new
+  // accounts through an activation code issued at the first visit instead.
+  const PORTAL_SIGNUP_URL = "https://patientgateway.massgeneralbrigham.org/";
   document.querySelectorAll("#portalHeader, #portalNav, .portal-link").forEach(a => {
     a.href = PORTAL_URL;
+  });
+  document.querySelectorAll(".portal-signup").forEach(a => {
+    a.href = PORTAL_SIGNUP_URL;
   });
 
   // ===== WIRING: cookie consent ===================================
