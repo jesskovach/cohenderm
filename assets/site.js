@@ -185,7 +185,7 @@ const toggle = document.getElementById("menuToggle");
     }
     s.innerHTML = "<b>Application received" + (n ? " — with " + n + " photo" + (n > 1 ? "s" : "") : "") +
       ".</b> Rachel and the clinical team read every application personally. We'll respond by text or email — with an invitation to schedule your initial medical exam, or your place on the waitlist." +
-      (isLive ? "" : " (Mockup — no application or photos were actually sent.) <a href=\"#/account\">Preview the patient account (demo) →</a>");
+      (isLive ? "" : " (Mockup — no application or photos were actually sent.)");
     s.classList.add("show");
     btn.disabled = true;
     btn.textContent = "Application received ✓";
