@@ -12,6 +12,19 @@ SRC = pathlib.Path(sys.argv[1] if len(sys.argv) > 1 else "skin-fitness-mockup.ht
 OUT = pathlib.Path(sys.argv[2] if len(sys.argv) > 2 else "site")
 ORIGIN = "https://jaycohenmd.net"
 
+# The site is staged on a workers.dev address and is NOT live on purpose.
+# While DEMO is True, every page carries <meta name="robots" content="noindex">
+# and the footer keeps its "Design concept" notice — a review site that is not
+# live should not be in anyone's index, and canonicals here point at
+# jaycohenmd.net, which still serves the old site.
+#
+# robots.txt deliberately stays "Allow: /" so crawlers can reach the pages and
+# actually read the noindex. Disallowing the crawl would hide it.
+#
+# Flip to False on the day jaycohenmd.net is pointed here. Both the noindex and
+# the footer notice come off together — that is the point of the single switch.
+DEMO = True
+
 PORTAL_URL = "https://patientgateway.massgeneralbrigham.org/"
 PORTAL_SIGNUP_URL = "https://patientgateway.massgeneralbrigham.org/"
 
@@ -172,6 +185,11 @@ header   = re.search(r'(<header class="site">[\s\S]*?</header>)', src).group(1)
 consent  = re.search(r'(<div class="consent" id="consentBar"[\s\S]*?\n</div>)', src).group(1)
 footer   = re.search(r'(<footer class="site">[\s\S]*?</footer>)', src).group(1)
 
+# The "Design concept — for review" notice belongs to the staged site only.
+# Same switch as the noindex above, so the two can never fall out of step.
+if not DEMO:
+    footer = re.sub(r'\s*<span>Design concept[^<]*</span>', '', footer)
+
 # The patient-account page is a demo of a portal concept and is deliberately
 # excluded from the production build — Patient Gateway fills that role. Drop
 # every link to it so nothing points at a 404.
@@ -248,7 +266,7 @@ def page_html(slug, title, desc, body, canonical, extra_schema=""):
     nav = header
     # mark the active nav item
     nav = nav.replace(f'data-r="{slug}"', f'data-r="{slug}" aria-current="page"')
-    robots = '\n  <meta name="robots" content="noindex">' if slug in NOINDEX else ""
+    robots = '\n  <meta name="robots" content="noindex">' if (DEMO or slug in NOINDEX) else ""
     schema = f'\n  <script type="application/ld+json">{ORG_SCHEMA}</script>'
     if extra_schema:
         schema += f'\n  <script type="application/ld+json">{extra_schema}</script>'
@@ -308,7 +326,8 @@ nf = page_html("404", "Page not found | Jay Cohen Dermatology",
     <div class="hero-ctas"><a class="btn btn-solid" href="/">Back to the homepage</a></div>
   </div></section>
 </div>''', "/404")
-nf = nf.replace('<link rel="canonical"', '<meta name="robots" content="noindex">\n  <link rel="canonical"', 1)
+if 'name="robots"' not in nf:   # DEMO mode already added it
+    nf = nf.replace('<link rel="canonical"', '<meta name="robots" content="noindex">\n  <link rel="canonical"', 1)
 (OUT / "404.html").write_text(finish_html(nf))
 written.append("404.html")
 
