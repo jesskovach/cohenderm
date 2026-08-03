@@ -247,11 +247,11 @@ PHYSICIANS = f'''{{
   "@context": "https://schema.org",
   "@graph": [
     {{ "@type": "Physician", "name": "Jay L. Cohen, MD, JD", "medicalSpecialty": "Dermatologic",
-       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers" }},
+       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers/" }},
     {{ "@type": "Physician", "name": "Kerry Fike, MD, RPh", "medicalSpecialty": "Dermatologic",
-       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers" }},
+       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers/" }},
     {{ "@type": "Person", "name": "Rachel Cohen, NP-C, DCNP", "jobTitle": "Dermatology Nurse Practitioner",
-       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers" }}
+       "worksFor": {{ "@id": "{ORIGIN}/#practice" }}, "url": "{ORIGIN}/providers/" }}
   ]
 }}'''
 
