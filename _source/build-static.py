@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Convert the single-file Skin Fitness mockup into a deploy-ready static site.
+"""Convert the single-file practice mockup into a deploy-ready static site.
 
   python3 build-static.py skin-fitness-mockup.html out/
 
@@ -93,14 +93,8 @@ def canon(route):
 
 PAGES = {
   "home": ("index.html", "/",
-    "Skin Fitness | Medical Dermatology in Needham, MA",
-    "Medical dermatology and a structured year of skin conditioning in Needham. Healthy skin is a process. Not a procedure."),
-  "method": ("method/index.html", "/method",
-    "The Skin Fitness Method | Jay Cohen Dermatology",
-    "Four phases, one year, measurable skin health. Rachel Cohen's published skin-conditioning framework, delivered by a medical dermatology practice."),
-  "about": ("about/index.html", "/about",
-    "About the Practice | Jay Cohen Dermatology, Needham MA",
-    "Founded by Dr. Jay Cohen and built deliberately: board-certified dermatology, a Mohs-trained surgeon, and a published conditioning framework."),
+    "Jay Cohen Dermatology | Medical Dermatology in Needham, MA",
+    "Board-certified medical dermatology, Mohs surgery, and medical esthetics in Needham, Massachusetts."),
   "providers": ("providers/index.html", "/providers",
     "Our Providers | Jay Cohen Dermatology, Needham MA",
     "Jay L. Cohen MD JD, Kerry Fike MD RPh, and Rachel Cohen NP-C DCNP. Board-certified dermatology and Mohs-trained surgical care in Needham."),
@@ -112,7 +106,7 @@ PAGES = {
     "Appointments, what to bring, insurance and referrals, emergencies, and office policies. Patient Gateway for secure messaging and records."),
   "services": ("services/index.html", "/services",
     "Dermatology Services | Skin Cancer, Acne, Cosmetic | Needham MA",
-    "Skin cancer screening and surgery, medical dermatology for acne, rosacea, eczema and psoriasis, plus cosmetic dermatology and the Skin Fitness program."),
+    "Skin cancer screening and surgery, medical dermatology for acne, rosacea, eczema and psoriasis, plus cosmetic dermatology and medical esthetics."),
   "education": ("education/index.html", "/education",
     "Patient Education | Jay Cohen Dermatology, Needham MA",
     "Plain-language treatment handouts for acne, nails, dermatitis and warts, plus trusted dermatology resources from our clinical team."),
@@ -215,7 +209,6 @@ ORG_SCHEMA = f'''{{
       "@type": "MedicalClinic",
       "@id": "{ORIGIN}/#practice",
       "name": "Jay L. Cohen, M.D., P.C.",
-      "alternateName": "Skin Fitness",
       "url": "{ORIGIN}/",
       "telephone": "+1-781-449-3588",
       "faxNumber": "+1-781-449-5474",
@@ -243,7 +236,7 @@ ORG_SCHEMA = f'''{{
     {{
       "@type": "WebSite",
       "@id": "{ORIGIN}/#website",
-      "name": "Skin Fitness — Jay Cohen Dermatology",
+      "name": "Jay Cohen Dermatology",
       "url": "{ORIGIN}/",
       "publisher": {{ "@id": "{ORIGIN}/#practice" }}
     }}
@@ -279,7 +272,7 @@ def page_html(slug, title, desc, body, canonical, extra_schema=""):
   <meta name="description" content="{ihtml.escape(desc)}">
   <link rel="canonical" href="{canon(canonical)}">{robots}
   <meta property="og:type" content="website">
-  <meta property="og:site_name" content="Skin Fitness — Jay Cohen Dermatology">
+  <meta property="og:site_name" content="Jay Cohen Dermatology">
   <meta property="og:title" content="{ihtml.escape(title)}">
   <meta property="og:description" content="{ihtml.escape(desc)}">
   <meta property="og:url" content="{canon(canonical)}">
@@ -308,7 +301,12 @@ for slug, (fname, route, title, desc) in PAGES.items():
     if slug not in blocks:
         print(f"  ! missing block: {slug}")
         continue
-    body = rewrite_links(f'<div class="page active" id="page-{slug}">{blocks[slug]}</div>')
+    raw = blocks[slug]
+    if slug == "home":
+        # Home and About are one page now, served at /. The About block keeps
+        # its own page-head, which reads as a section heading mid-page.
+        raw += blocks["about"]
+    body = rewrite_links(f'<div class="page active" id="page-{slug}">{raw}</div>')
     extra = PHYSICIANS if slug == "providers" else ""
     dest = OUT / fname
     dest.parent.mkdir(parents=True, exist_ok=True)
@@ -340,6 +338,10 @@ urls = "\n".join(
 (OUT / "sitemap.xml").write_text(
   f'<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n{urls}\n</urlset>\n')
 (OUT / "robots.txt").write_text(f"User-agent: *\nAllow: /\n\nSitemap: {ORIGIN}/sitemap.xml\n")
+
+# About merged into the homepage; Method moved to its own site. Keep the old
+# paths from 404-ing for anything that already links to them.
+(OUT / "_redirects").write_text("/about/  /  301\n/about   /  301\n")
 
 print(f"pages: {len(written)} → {', '.join(written)}")
 print(f"assets: styles.css, site.js, {len(by_hash)} images")
