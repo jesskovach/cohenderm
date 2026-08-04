@@ -344,7 +344,13 @@ for slug, (fname, route, title, desc) in PAGES.items():
     extra = PHYSICIANS if slug == "providers" else ""
     dest = OUT / fname
     dest.parent.mkdir(parents=True, exist_ok=True)
-    dest.write_text(finish_html(page_html(slug, title, desc, body, route, extra)))
+    html_out = finish_html(page_html(slug, title, desc, body, route, extra))
+    # An unclosed <section> silently nests everything after it, so a dark band
+    # bleeds its text colour onto light ones. Cheap to check, invisible to miss.
+    if html_out.count("<section") != html_out.count("</section>"):
+        raise SystemExit(f"  ! {slug}: {html_out.count('<section')} <section> vs "
+                         f"{html_out.count('</section>')} </section> — unbalanced")
+    dest.write_text(html_out)
     written.append(fname)
 
 # 404
