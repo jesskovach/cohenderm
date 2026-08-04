@@ -25,6 +25,21 @@ ORIGIN = "https://jaycohenmd.net"
 # the footer notice come off together — that is the point of the single switch.
 DEMO = True
 
+# Online booking / new-patient intake.
+#
+# MUST be a HIPAA-compliant provider with a signed BAA. A new-patient form
+# collects a name plus the fact that someone is seeking care, which is PHI
+# because it concerns FUTURE treatment. Cloudflare only signs BAAs with
+# Enterprise customers, so the form must live at the vendor and be reached
+# cross-origin — it must never post back to this origin.
+#
+# IntakeQ includes the BAA at every tier ($29.90/mo low volume). Jotform
+# gates HIPAA behind Gold ($99-129/mo).
+#
+# While this is empty, every "Book online" control degrades to the phone
+# number and the booking copy stays honest about it.
+BOOKING_URL = ""
+
 PORTAL_URL = "https://patientgateway.massgeneralbrigham.org/"
 PORTAL_SIGNUP_URL = "https://patientgateway.massgeneralbrigham.org/"
 
@@ -67,6 +82,25 @@ def finish_html(html, is_first_page_image_eager=True):
             return tag.replace('href="#"', f'href="{PORTAL_URL}"')
         return tag
     html = re.sub(r'<a\b[^>]*>', resolve_portal, html)
+
+    def resolve_booking(m):
+        """Anchors marked .book-online point at the booking vendor when one is
+        configured, and fall back to the phone when none is."""
+        tag = m.group(0)
+        if 'book-online' not in tag:
+            return tag
+        if BOOKING_URL:
+            return tag.replace('href="#book-online"',
+                               f'href="{BOOKING_URL}" target="_blank" rel="noopener noreferrer"')
+        return tag.replace('href="#book-online"', 'href="tel:+17814493588"')
+    html = re.sub(r'<a\b[^>]*>', resolve_booking, html)
+    if not BOOKING_URL:
+        html = html.replace(">Book online<", ">Call to book<")
+        html = html.replace("{{BOOKING_NOTE}}",
+            "Online booking is coming. For now the office books by phone.")
+    else:
+        html = html.replace("{{BOOKING_NOTE}}",
+            "Book online any time, or call the office during business hours.")
     seen = {"first": True}
     def stamp(m):
         tag = m.group(0)
