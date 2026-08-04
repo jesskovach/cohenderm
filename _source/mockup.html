@@ -1357,64 +1357,6 @@
     });
   });
 
-  // ---- photo upload (mockup: files never leave the browser) ----
-  const photoDrop = document.getElementById("photoDrop");
-  const photoInput = document.getElementById("photoInput");
-  const photoThumbs = document.getElementById("photoThumbs");
-  const MAX_PHOTOS = 4;
-  const photos = [];
-
-  function renderPhotos(){
-    photoThumbs.innerHTML = "";
-    photos.forEach((p, i) => {
-      const t = document.createElement("div");
-      t.className = "thumb";
-      const img = document.createElement("img");
-      img.alt = p.file.name;
-      img.src = p.url;
-      img.onerror = () => {
-        // HEIC and other formats the browser can't decode: show the filename instead
-        img.remove();
-        const f = document.createElement("span");
-        f.className = "fname";
-        f.textContent = p.file.name;
-        t.prepend(f);
-      };
-      const rm = document.createElement("button");
-      rm.type = "button";
-      rm.setAttribute("aria-label", "Remove " + p.file.name);
-      rm.textContent = "×";
-      rm.addEventListener("click", () => {
-        URL.revokeObjectURL(p.url);
-        photos.splice(i, 1);
-        renderPhotos();
-      });
-      t.append(img, rm);
-      photoThumbs.append(t);
-    });
-    photoDrop.style.display = photos.length >= MAX_PHOTOS ? "none" : "";
-  }
-
-  function addPhotos(files){
-    for (const file of files){
-      if (photos.length >= MAX_PHOTOS) break;
-      if (!file.type.startsWith("image/")) continue;
-      photos.push({ file, url: URL.createObjectURL(file) });
-    }
-    renderPhotos();
-  }
-
-  photoDrop.addEventListener("click", () => photoInput.click());
-  photoDrop.addEventListener("keydown", e => {
-    if (e.key === "Enter" || e.key === " "){ e.preventDefault(); photoInput.click(); }
-  });
-  photoInput.addEventListener("change", () => { addPhotos(photoInput.files); photoInput.value = ""; });
-  ["dragover","dragleave","drop"].forEach(ev => photoDrop.addEventListener(ev, e => {
-    e.preventDefault();
-    photoDrop.classList.toggle("dragover", ev === "dragover");
-    if (ev === "drop") addPhotos(e.dataTransfer.files);
-  }));
-
 
   // ===== WIRING: patient portal ===================================
   // Mass General Brigham's Epic MyChart instance. Confirm this is the
@@ -1476,61 +1418,6 @@
   document.getElementById("cookieAccept2").addEventListener("click", () => setConsent("all"));
   document.getElementById("cookieReject2").addEventListener("click", () => setConsent("essential"));
 
-  // ===== WIRING: application form =================================
-  // To go live, set APPLICATION_ENDPOINT to your form endpoint URL.
-  // The form POSTs multipart FormData with fields: provider, reason,
-  // name, contact, notes, and photo_1..photo_4 (image files).
-  //
-  // IMPORTANT — PHI: applications include medical reasons and skin
-  // photos, which are protected health information. The endpoint
-  // provider must be HIPAA-compliant and sign a BAA (e.g. IntakeQ,
-  // Jotform HIPAA plan, Klara). A standard form service without a
-  // BAA is not appropriate for this data.
-  //
-  // Leave "" for demo mode: nothing is sent, success is simulated.
-  const APPLICATION_ENDPOINT = "";
-  // ================================================================
-
-  const apptForm = document.getElementById("apptForm");
-  const isLive = APPLICATION_ENDPOINT !== "";
-  document.getElementById("photoFine").textContent = isLive
-    ? "Photos are sent securely with your application."
-    : "Photos stay on your device in this mockup — nothing is uploaded or stored.";
-
-  apptForm.addEventListener("submit", async e => {
-    e.preventDefault();
-    const s = document.getElementById("apptSuccess");
-    const btn = apptForm.querySelector("button[type=submit]");
-    const n = photos.length;
-    if (isLive){
-      btn.disabled = true;
-      btn.textContent = "Sending…";
-      const data = new FormData();
-      data.append("provider", document.querySelector("#provSeg button[aria-pressed=true]").textContent);
-      data.append("visit_preference", document.querySelector("#modeSeg button[aria-pressed=true]").textContent);
-      data.append("reason", document.getElementById("fConcern").value);
-      data.append("name", document.getElementById("fName").value);
-      data.append("contact", document.getElementById("fPhone").value);
-      data.append("notes", document.getElementById("fNotes").value);
-      photos.forEach((p, i) => data.append("photo_" + (i + 1), p.file, p.file.name));
-      try {
-        const res = await fetch(APPLICATION_ENDPOINT, { method: "POST", body: data, headers: { "Accept": "application/json" } });
-        if (!res.ok) throw new Error("HTTP " + res.status);
-      } catch (err){
-        btn.disabled = false;
-        btn.textContent = "Submit application";
-        s.innerHTML = "<b>Something went wrong.</b> Your application wasn't sent — please try again, or call <a href=\"tel:+17814493588\">781-449-3588</a> and we'll take it by phone.";
-        s.classList.add("show");
-        return;
-      }
-    }
-    s.innerHTML = "<b>Application received" + (n ? " — with " + n + " photo" + (n > 1 ? "s" : "") : "") +
-      ".</b> Rachel and the clinical team read every application personally. We'll respond by text or email — with an invitation to schedule your initial medical exam, or your place on the waitlist." +
-      (isLive ? "" : " (Mockup — no application or photos were actually sent.) <a href=\"#/account\">Preview the patient account (demo) →</a>");
-    s.classList.add("show");
-    btn.disabled = true;
-    btn.textContent = "Application received ✓";
-  });
 
   // ---- Fitzpatrick scroll bar: the page passes through all six tones as you read ----
   const toneBar = document.getElementById("toneBar");

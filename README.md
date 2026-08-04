@@ -1,69 +1,150 @@
-# Cohen Dermatology Website Management
+# Jay Cohen Dermatology
 
-# Deploy
+The practice website for Jay L. Cohen, M.D., P.C. — 464 Hillside Ave., Suite 303, Needham, MA.
 
-Static site. No build step, no dependencies. Upload the contents of this folder to any static host.
+**Built, but not live on purpose.** It is staged at
+<https://cohenderm.kovachconsultants.workers.dev> while the practice decides.
+`jaycohenmd.net` still serves the old Canva site and its DNS is deliberately
+unpointed — don't point it at anything.
+
+---
+
+## Do not edit the files at the repo root
+
+Every `.html` file here is **generated**. A rebuild overwrites them without
+warning. The only files you should ever edit by hand live in `_source/`.
 
 ```
-index.html              /
-method/index.html       /method
-about/index.html        /about
-providers/index.html    /providers
-esthetician/index.html  /esthetician
-patient-info/index.html /patient-info
-services/index.html     /services
-education/index.html    /education
-pay/index.html          /pay
-cookie-policy/index.html /cookie-policy   (noindex)
+_source/mockup.html            source of truth for the whole site
+_source/build-static.py        splits it into the deployed pages
+_source/skin-fitness-full.html preserved Skin Fitness build (see below)
+```
+
+## Build
+
+```bash
+cd _source
+python3 build-static.py mockup.html ../_build
+# copy _build/* over the repo root, excluding _source/, README.md, .git/, .assetsignore
+cd .. && git add -A && git commit -m "..." && git push
+```
+
+Pushing to `main` auto-deploys in about a minute. The host is a **Cloudflare
+Worker with static assets**, connected to this repo through the Cloudflare
+dashboard. There is no build step on Cloudflare's side — it serves the repo
+as-is, which is why the built files are committed.
+
+`_source/` is excluded from what the Worker serves via `.assetsignore`
+(verified: it 404s).
+
+> **Rebuild before assuming the deployed files match the source.** They have
+> drifted before. Build to a temp directory and diff against the repo root.
+
+## Pages
+
+```
+/               homepage (About is merged in here)
+/providers/     Jay Cohen MD JD · Kerry Fike MD RPh · Rachel Cohen NP-C DCNP
+/esthetician/   Marina Kitzis
+/patient-info/  appointments, insurance, policies, new-patient process
+/services/      medical, cosmetic, telehealth
+/education/     patient handouts + resource organisations
+/pay/           Rectangle Health
+/cookie-policy/ noindex
 404.html
-assets/styles.css
-assets/site.js
-assets/img/            9 photos
-sitemap.xml  robots.txt  CNAME  .nojekyll
 ```
 
-Directory-style URLs, so `/services` resolves identically on GitHub Pages, Netlify, Cloudflare Pages, S3, and nginx. No host-specific rewrite rules needed.
+Directory-style URLs with trailing slashes. The host 307s bare paths to the
+slashed form, so **every internal link, canonical, sitemap entry and schema
+`url` uses the trailing slash.** Keep it that way.
 
-## GitHub Pages
+`/about/` and `/method/` no longer exist. `_redirects` 301s both to `/`
+(verified working).
 
-1. Create a repo, commit everything in this folder at the root.
-2. Settings → Pages → Source: **Deploy from a branch** → `main` / `root`.
-3. Settings → Pages → Custom domain: `jaycohenmd.net` (the `CNAME` file already declares it).
-4. At the domain registrar, point DNS at GitHub:
-   - Four `A` records for the apex: `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
-   - One `CNAME` for `www` → `<username>.github.io`
-5. Wait for DNS, then tick **Enforce HTTPS**.
+## The two switches
 
-Note: DNS currently points at Canva. Changing it takes the Canva site offline — cut over deliberately, not mid-day.
+Both live at the top of `_source/build-static.py`.
+
+### `DEMO`
+
+```python
+DEMO = True
+```
+
+While true, every page carries `<meta name="robots" content="noindex">` and the
+footer keeps its "Design concept — for review. Not a live medical site." notice.
+Setting it to `False` removes **both together** — that is the point of one
+switch, so they cannot fall out of step at launch.
+
+`robots.txt` deliberately stays `Allow: /` so crawlers can reach the pages and
+read the noindex. Disallowing the crawl would hide it.
+
+**At launch:** flip to `False`, rebuild, push, then point the domain.
+
+### `BOOKING_URL`
+
+```python
+BOOKING_URL = ""
+```
+
+Empty: all eleven booking controls read "Call to book" and dial the office, and
+the booking copy says online booking isn't live yet. Set: they read "Book
+online", point at the vendor, and open in a new tab.
+
+**The booking form must never live on this origin.** A new-patient form collects
+a name plus the fact that someone is seeking care, which is PHI because it
+concerns *future* treatment. Cloudflare only signs BAAs with Enterprise
+customers, so the form stays at the vendor and is reached cross-origin. There
+are zero same-origin form actions in this build and it should stay that way.
+
+IntakeQ includes the BAA at every tier ($29.90/mo at low volume). Jotform gates
+HIPAA behind Gold ($99–129/mo).
+
+## Other wiring
+
+| Constant | Purpose |
+|---|---|
+| `PORTAL_URL` | MGB Patient Gateway. Confirmed with the office — the practice charts in Epic MyChart and this is their instance. |
+| `ORIGIN` | `https://jaycohenmd.net` — canonicals and sitemap. |
+
+## The Skin Fitness build
+
+This site was originally built as "Skin Fitness," a branded program site around
+Rachel Cohen's published framework. It was repositioned to a plain practice site
+in August 2026. That work was **not deleted**:
+
+- `_source/skin-fitness-full.html` — the complete original build, preserved
+- <https://github.com/jesskovach/cohenderm-method> — it now has its own site
+
+The only Skin Fitness references remaining here are Rachel's credential lines on
+the Providers page, which cite her real peer-reviewed paper. Those are
+credentials, not positioning.
+
+## Build-time checks
+
+`build-static.py` refuses to write a page whose `<section>` tags don't balance.
+An unclosed section silently nests everything after it, so a dark band bleeds
+its text colour onto light ones — which shipped once and made a third of the
+homepage unreadable.
 
 ## Before launch
 
-**1. The application form does not submit anywhere.** In `assets/site.js`, `APPLICATION_ENDPOINT` is `""` (demo mode: it simulates success). Applications carry medical reasons and skin photos, which are PHI. The endpoint must be a HIPAA-compliant service with a signed BAA — IntakeQ, Jotform's HIPAA plan, Klara. A standard form service is not acceptable here.
-
-Alternative: delete the form and point that button at Patient Gateway, which is already the protected channel for everything clinical.
-
-**2. Confirm the eight `ASSUMPTION` claims.** Search the HTML files. Each marks something needing Rachel's sign-off — the January 2027 date, the waitlist policy, "medical concerns are prioritized in review," the testimonial placeholders, telehealth scope, and two clinical phrasings.
-
-**3. Testimonials are placeholders.** Written in the design's voice, not real patient quotes. Replace with real, permissioned reviews or delete the section.
-
-**4. Verify the Patient Gateway URL** is the instance this practice's patients actually use. `PORTAL_URL` in `assets/site.js` drives all five portal links.
-
-**5. Photography.** Three clinical photos are licensed Canva Pro stock. Four headshots came from the old site and are low-resolution — fine at card size, first thing to upgrade.
+1. Flip `DEMO` to `False` and rebuild.
+2. **Telehealth** is described on Services and Patient Info for a service the
+   practice does not currently offer. Build it or strip it.
+3. Confirm the practice still wants the "Now accepting new patients" line if
+   their books ever close.
+4. Point DNS. Changing it takes the Canva site offline — cut over deliberately.
 
 ## After launch
 
-1. Search Console → add `jaycohenmd.net` → verify by **DNS TXT**.
+1. Search Console → add `jaycohenmd.net` → verify by DNS TXT.
 2. Submit `sitemap.xml`.
-3. Test the homepage and `/providers` at `search.google.com/test/rich-results` — `MedicalClinic` and `Physician` schema should both parse.
-4. URL Inspection → Request indexing on the homepage.
-5. Add the site to the Google Business Profile, and add the Business Profile URL to the `sameAs` array in the schema block (in each page's `<head>`).
+3. Test `/` and `/providers/` at <https://search.google.com/test/rich-results> —
+   `MedicalClinic` and `Physician` should both parse.
+4. Make hours, address format and phone match **character-for-character** across
+   Google, Vitals, Healthgrades, WebMD and Yelp. Inconsistent listings suppress
+   local ranking, and this is the highest-value item on the list.
+5. Add the Business Profile URL to the schema `sameAs` array.
 
-## Rebuilding
-
-This folder was generated from the single-file mockup by `build-static.py`:
-
-```bash
-python3 build-static.py skin-fitness-mockup.html site/
-```
-
-Edit the mockup and re-run to regenerate everything, or edit these files directly — they are plain HTML and there is no build requirement.
+Hours are Mon–Fri 8:00 a.m.–4:00 p.m., confirmed with the office.
