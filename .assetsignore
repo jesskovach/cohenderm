@@ -1,1 +1,6 @@
 _source
+.claude
+.gitignore
+.wrangler
+.dev.vars*
+.env*
