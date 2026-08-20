@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "preview",
+      "runtimeExecutable": "/bin/zsh",
+      "runtimeArgs": ["-lc", "cd _source && python3 build-static.py mockup.html ../_build && cd .. && exec /usr/bin/python3 -m http.server 4188 --directory _build"],
+      "port": 4188
+    }
+  ]
+}

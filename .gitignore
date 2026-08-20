@@ -1,0 +1,6 @@
+# Local build output. The deployed site lives at the repo root; _build is the
+# staging tree the preview serves and the copy-over source. Never commit it —
+# this repo is public and _build is a full duplicate of the site.
+_build/
+
+.DS_Store
